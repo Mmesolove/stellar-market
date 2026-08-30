@@ -65,6 +65,10 @@ jest.mock("@prisma/client", () => {
     PrismaClient: jest.fn(() => mockPrisma),
     UserRole: { CLIENT: "CLIENT", FREELANCER: "FREELANCER", ADMIN: "ADMIN" },
     DisputeStatus: { OPEN: "OPEN", IN_PROGRESS: "IN_PROGRESS", RESOLVED: "RESOLVED" },
+    NotificationType: {
+      JOB_REMOVED: "JOB_REMOVED",
+      JOB_EXPIRED: "JOB_EXPIRED",
+    },
   };
 });
 
@@ -171,6 +175,23 @@ describe("GET /api/admin/jobs", () => {
       limit: expect.any(Number),
       totalPages: 1,
     });
+  });
+
+  it("sends a valid JOB_REMOVED notification when a moderator deletes a job", async () => {
+    prismaMock.job.findUnique.mockResolvedValueOnce(mockJob);
+    prismaMock.job.update.mockResolvedValueOnce({ ...mockJob, deletedAt: new Date() });
+
+    const app = buildApp();
+    const res = await asAdmin(request(app).delete("/api/admin/jobs/job-001"));
+
+    expect(res.status).toBe(200);
+    expect(require("../services/notification.service").NotificationService.sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "client-001",
+        type: "JOB_REMOVED",
+        title: "Job Removed by Moderator",
+      }),
+    );
   });
 
   it("respects page and limit query parameters", async () => {
