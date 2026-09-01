@@ -113,6 +113,7 @@ jest.mock("../utils/auditLogger", () => ({
 import { PrismaClient } from "@prisma/client";
 import express from "express";
 import request from "supertest";
+import { NotificationService } from "../services/notification.service";
 import adminRouter from "../routes/admin";
 
 const prismaMock = new PrismaClient() as unknown as MockPrismaClient;
@@ -185,7 +186,7 @@ describe("GET /api/admin/jobs", () => {
     const res = await asAdmin(request(app).delete("/api/admin/jobs/job-001"));
 
     expect(res.status).toBe(200);
-    expect(require("../services/notification.service").NotificationService.sendNotification).toHaveBeenCalledWith(
+    expect(NotificationService.sendNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: "client-001",
         type: "JOB_REMOVED",
